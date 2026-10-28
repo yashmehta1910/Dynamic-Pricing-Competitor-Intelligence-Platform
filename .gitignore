@@ -1,8 +1,15 @@
 
-# Ignore virtual environments
+# Environment files
+.env
+.env.*
+
+# Keep the example environment file, if needed
+!.env.example
+
+# Virtual environments
 venv/
 .venv/
 env/
 
-# Ignore a specific HTML file
+# Specific HTML file
 index_backup.html
