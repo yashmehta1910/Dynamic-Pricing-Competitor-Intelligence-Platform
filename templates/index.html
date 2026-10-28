@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ app_name }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={future:{hoverOnlyWhenSupported:true},theme:{extend:{fontFamily:{sans:['Geist','Inter','system-ui','sans-serif']},colors:{slate:{50:'#fafafa',100:'#f2f2f2',200:'#e5e5e5',300:'#d4d4d4',400:'#a7a8a9',500:'#81899a',600:'#43506d',700:'#323e59',800:'#1b2539',900:'#101624',950:'#070a11'}}}}}</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* Tokens: achromatic ledger, true-neutral dark. Blue is reserved for pricing data. */
+:root{--rail:#0c1322;--ground:#111a2c;--surface:#182339;--raised:#212e48;--border:#2c3c5c;--rule:#243350;--control:#3b4d72;--text:#f1f5fb;--muted:#9db0cf;--accent:#5aa2ff;--accent-strong:#2f6fe4;--amber:#d9a441;--ease-out:cubic-bezier(.23,1,.32,1)}
+html{color-scheme:dark}body{background:var(--ground);color:var(--text);font-size:14px}
+.tnum{font-variant-numeric:tabular-nums}.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.msub{font-size:12px;color:var(--muted)}.acc{color:var(--accent)}.empty{padding:28px 0;color:var(--muted)}.empty.big{padding:64px 0;text-align:center}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}input[type=range]{accent-color:var(--accent);cursor:pointer;width:100%}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#666;flex:none;margin-right:8px}.dot.over{background:#fb7185}.dot.under{background:#fbbf24}.dot.ok{background:#34d399}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;height:36px;padding:0 .9rem;border-radius:6px;font-size:.875rem;font-weight:500;cursor:pointer;user-select:none;white-space:nowrap;transition:background-color 150ms ease,transform 120ms var(--ease-out),opacity 150ms ease}
+.btn:active{transform:scale(.97)}.btn:disabled{opacity:.5;pointer-events:none}.btn-sm{height:28px;padding:0 .6rem;font-size:.75rem}
+.btn-primary{background:#ededed;color:#070a11}.btn-primary:hover{background:#fff}
+.btn-ghost{background:var(--raised);color:var(--text);border:1px solid var(--border)}.btn-ghost:hover{background:#222}
+.btn-danger{background:#e5484d;color:#fff}.btn-danger:hover{background:#f2555a}
+.input{width:100%;height:36px;background:var(--surface);border:1px solid var(--control);border-radius:6px;padding:0 .7rem;color:var(--text);font-size:.875rem;transition:border-color 150ms ease}.input:hover{border-color:#3b4864}.input option{background:var(--surface)}
+/* shell */
+.shell{display:flex;min-height:100dvh}
+.rail{width:236px;flex:none;position:sticky;top:0;height:100dvh;display:flex;flex-direction:column;padding:20px 12px;border-right:1px solid var(--rule)}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px 8px}.brand b{display:block;font-weight:700;font-size:15px;line-height:1.2}.brand span{font-size:12px;color:var(--muted)}
+#sideBody{display:flex;flex:1;flex-direction:column;min-height:0}.grp{font-size:12px;color:var(--muted);padding:20px 10px 6px}
+.nav{display:flex;width:100%;align-items:center;gap:.6rem;height:34px;border-radius:6px;padding:0 .75rem;color:var(--muted);transition:background-color 150ms ease,color 150ms ease}.nav:hover{background:var(--raised);color:var(--text)}.nav.on{background:#161e2f;color:var(--text)}
+.badge{margin-left:auto;background:#e5484d;color:#fff;border-radius:999px;padding:0 7px;font-size:11px;font-weight:700;line-height:18px}
+.rail-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:16px}.stamp{font-size:12px;color:var(--muted);padding:6px 4px 0}
+.stage{flex:1;min-width:0}
+.bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:18px 40px;background:var(--ground);border-bottom:1px solid var(--rule)}
+.bar h1{font-size:24px;font-weight:700;line-height:1.2}.bar p{font-size:13px;color:var(--muted);margin-top:2px}
+.marginctl{display:flex;align-items:center;gap:14px;flex:none}.marginctl label{font-size:13px;color:var(--muted)}.marginctl input{width:200px}.marginctl output{width:3.2rem;text-align:right;font-size:20px;font-weight:700}
+main{padding:32px 40px 80px;max-width:1320px}.errbar:not(.hidden){display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;padding:12px 16px;border:1px solid rgba(251,113,133,.35);border-radius:8px;background:rgba(251,113,133,.08);color:#fecdd3}
+/* overview */
+.verdict{font-size:22px;line-height:1.35;font-weight:500;max-width:42ch}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:28px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.kpis>div,.tri>div,.hstats>div{padding:14px 20px;min-width:0}.kpis>div:first-child,.tri>div:first-child{padding-left:0}.kpis>div+div,.tri>div+div{border-left:1px solid var(--border)}
+.kl{font-size:13px;color:var(--muted);display:flex;align-items:center}.kv{font-size:24px;font-weight:700;line-height:1.15;margin-top:4px}.kn{font-size:12px;color:var(--muted);margin-top:4px}
+.console{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-top:32px}
+.console-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:18px 20px 14px;border-bottom:1px solid var(--rule)}.fld-l{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+.pick{max-width:360px;height:40px;font-size:15px;font-weight:500}
+.console-body{display:grid;grid-template-columns:232px minmax(0,1fr)}.statrail{border-right:1px solid var(--rule)}
+.st{padding:16px 20px;min-width:0}.st+.st{border-top:1px solid var(--rule)}.st dt{font-size:12px;color:var(--muted)}.st dd.sub{font-size:12px;font-weight:400;color:var(--muted);margin-top:2px;line-height:1.3}.st dd{font-size:28px;font-weight:700;line-height:1.15;margin-top:2px;overflow-wrap:anywhere}
+.chartwrap{position:relative;height:400px;padding:16px 20px 8px;min-width:0}.fnote{padding:12px 20px 16px;border-top:1px solid var(--rule);font-size:13px;color:#c8c8c8}
+.duo{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:56px;margin-top:44px}.sec{font-size:15px;font-weight:500;margin-bottom:4px}.secd{font-size:13px;color:var(--muted);margin-bottom:14px}
+.wrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--rule);cursor:pointer;transition:background-color 120ms ease}.wrow:hover{background:#0a0e18}.wrow .dot{margin:0}
+.stackbar{position:relative;height:44px;margin-bottom:8px}
+/* catalog */
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.toolbar-r{margin-left:auto;display:flex;gap:8px}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--raised);border-radius:8px;padding:3px}.seg button{padding:6px 12px;border-radius:6px;font-size:13px;color:var(--muted);transition:background-color 150ms ease,color 150ms ease}
+.seg button:hover{color:var(--text)}.seg button.on{background:#1f283e;color:var(--text)}.seg i{font-style:normal;color:#66718a;margin-left:6px}
+.keyline{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin:16px 0 14px;font-size:12px;color:var(--muted)}.k{display:inline-block;margin-right:6px;vertical-align:middle}
+.k-rg{width:18px;height:6px;border-radius:3px;background:#2c3852}.k-you{width:10px;height:10px;border-radius:50%;background:var(--accent)}.k-sug{width:10px;height:10px;border-radius:50%;border:2px solid var(--text)}.k-fl{width:2px;height:12px;background:var(--amber)}
+.phead,.prow{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,2.2fr) 100px 150px 116px;gap:20px;align-items:center}.prow>*,.phead>*{min-width:0}.prow{grid-template-areas:"pid sc pp ps ac"}.pid{grid-area:pid}.pscale{grid-area:sc}.pp{grid-area:pp}.ps{grid-area:ps}.pact{grid-area:ac}
+.phead{padding:0 8px 8px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border)}.prow{padding:16px 8px;border-bottom:1px solid var(--rule);transition:background-color 120ms ease}.prow:hover{background:#0a0e18}
+.pname{font-weight:500;font-size:15px}.psub{font-size:12px;color:var(--muted);display:flex;align-items:center;margin-top:3px;min-width:0}.fig{font-weight:700;font-size:15px}.pact{display:flex;justify-content:flex-end;gap:6px}
+.scale{position:relative;height:26px}.scale>div{position:absolute}.scale .tr{left:0;right:0;top:12px;height:2px;background:#161e2f}.scale .rg{top:9px;height:8px;border-radius:4px;background:#333}
+.scale .fl{top:5px;width:2px;height:16px;background:var(--amber)}.scale .sug,.scale .you{top:6px;width:14px;height:14px;border-radius:50%;transform:translateX(-50%);border:2px solid var(--ground);box-sizing:border-box}
+.scale .sug{background:var(--text)}.scale .you{background:var(--accent)}.sline{font-size:12px;color:var(--muted);margin-top:5px;overflow-wrap:anywhere}
+/* alerts */
+.tri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.agrp{margin-top:32px}.agrp h3{font-size:13px;font-weight:500;color:var(--muted);margin-bottom:6px}
+.arow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 0 14px 16px;border-top:1px solid var(--rule);border-left:3px solid var(--sev,#666)}
+.atop{display:flex;align-items:baseline;gap:12px;min-width:0}.atype{font-size:12px;font-weight:500;color:var(--sev);flex:none}.aprod{font-weight:500;font-size:15px}.amsg{margin-top:3px;color:#c8c8c8;overflow-wrap:anywhere}.aact{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+/* simulator */
+.simtop{margin-bottom:20px}.simgrid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,1fr);gap:32px;align-items:start}.simgrid .console{margin-top:0}
+.callout{font-size:15px;line-height:1.45;margin-bottom:20px;color:var(--text)}
+.cmphead,.cmprow{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:10px;align-items:baseline}.cmphead{font-size:12px;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border)}.cmphead span+span,.cmprow>span+span{text-align:right}
+.cmprow{padding:14px 0;border-bottom:1px solid var(--rule);font-size:14px}.cmprow>span:first-child{color:var(--muted)}.cmprow .scen{font-weight:700;font-size:16px}
+.dock{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px;margin-top:32px;padding-top:24px;border-top:1px solid var(--border)}
+.fld{display:flex;flex-direction:column;gap:8px;min-width:0}.flexb{display:flex;justify-content:space-between;align-items:baseline}.big{font-size:22px;font-weight:700}
+/* history */
+.histbar{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;border-bottom:1px solid var(--border)}.hstats{display:flex;flex-wrap:wrap}.hstats>div{min-width:140px;max-width:220px}.hstats>div:first-child{padding-left:0}.histact{display:flex;align-items:center;gap:12px;padding-bottom:14px}
+.day{margin-top:28px}.day h3{font-size:13px;font-weight:500;color:var(--muted);padding-bottom:6px}
+.hrow{display:grid;grid-template-columns:56px minmax(0,1.4fr) minmax(0,1.1fr) 190px minmax(0,1.2fr);gap:18px;align-items:center;padding:12px 0;border-top:1px solid var(--rule)}.hrow>*{min-width:0}
+.hmove{color:var(--muted)}.hmove b{color:var(--text);font-weight:700}.hdv{display:flex;align-items:center;gap:10px}.hdv .tnum{width:56px;text-align:right;font-size:13px}
+.dv{position:relative;flex:1;height:6px;background:#121928;border-radius:3px}.dv::after{content:"";position:absolute;left:50%;top:-3px;width:1px;height:12px;background:#2c3852}.dv i{position:absolute;top:0;height:6px;border-radius:3px}.dv i.up{left:50%;background:#e5e5e5}.dv i.dn{right:50%;background:#66718a}
+/* overlays and feedback */
+.skel{background:var(--raised);border-radius:6px;animation:pulse 1.4s ease-in-out infinite}
+.menu{position:fixed;z-index:60;min-width:12rem;padding:4px;background:var(--raised);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.5);/* taste-skill-ignore: floating menu */transform-origin:var(--ox,top right);animation:pop 150ms var(--ease-out)}
+.menu button{display:flex;width:100%;height:32px;align-items:center;padding:0 .6rem;border-radius:5px;font-size:.8125rem;text-align:left}.menu button:hover,.menu button:focus-visible{background:#1b2539}.menu .danger{color:#fb7185}
+dialog{background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:0;margin:auto}dialog[open]{animation:dlg 180ms var(--ease-out)}dialog::backdrop{background:rgba(0,0,0,.65)}
+.toast{position:fixed;right:1.25rem;bottom:1.25rem;z-index:70;max-width:22rem;padding:.7rem .95rem;border-radius:8px;font-size:.875rem;font-weight:500;background:#ededed;color:#070a11;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity 150ms var(--ease-out),transform 150ms var(--ease-out)}
+.toast.bad{background:#e5484d;color:#fff}.toast.in{opacity:1;transform:none;transition-duration:200ms}
+/* motion: only on entering a page, never on data refresh */
+main>section:not(.hidden){animation:fade 160ms var(--ease-out)}.enter .stag{animation:rise 240ms var(--ease-out) both;animation-delay:calc(var(--i,0)*28ms)}
+@keyframes fade{from{opacity:0}}@keyframes rise{from{opacity:0;transform:translateY(6px)}}@keyframes pop{from{opacity:0;transform:scale(.96)}}@keyframes dlg{from{opacity:0;transform:translateY(8px) scale(.98)}}@keyframes pulse{50%{opacity:.5}}@keyframes sheet{from{transform:translateY(24px);opacity:0}}
+/* responsive */
+@media (max-width:1199px){.console-body{grid-template-columns:1fr}.statrail{display:grid;grid-template-columns:repeat(2,1fr);border-right:0;border-bottom:1px solid var(--rule)}.st+.st{border-top:0}.st:nth-child(n+3){border-top:1px solid var(--rule)}.st:nth-child(even){border-left:1px solid var(--rule)}.duo,.simgrid{grid-template-columns:1fr;gap:36px}.dock{grid-template-columns:1fr 1fr}.chartwrap{height:340px}}
+@media (max-width:1023px){.shell{display:block}.rail{position:sticky;top:0;z-index:30;width:auto;height:auto;padding:10px 16px;background:var(--ground);border-right:0;border-bottom:1px solid var(--rule)}#sideBody{display:none}#sideBody.open{display:flex;max-height:calc(100dvh - 4.5rem);overflow-y:auto}
+ .bar{position:static;flex-direction:column;align-items:stretch;gap:12px;padding:16px}.marginctl input{flex:1;width:auto}main{padding:20px 16px 72px}.kpis{grid-template-columns:1fr 1fr}.kpis>div:nth-child(3){border-left:0;padding-left:0}.kpis>div:nth-child(n+3){border-top:1px solid var(--border)}
+ .phead{display:none}.prow{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"pid ac" "sc sc" "pp ps";gap:12px}.pact{justify-self:end}.hrow{grid-template-columns:52px minmax(0,1fr) auto;gap:6px 12px}.hrow .hdv,.hrow .hreason{grid-column:2/-1}.tri{grid-template-columns:repeat(3,1fr)}.tri>div{padding:12px 10px}}
+@media (max-width:639px){dialog{margin:auto 0 0;max-width:100%;width:100%;border-radius:12px 12px 0 0}dialog[open]{animation-name:sheet}.toast{left:1rem;right:1rem;bottom:1rem;max-width:none}.dock{grid-template-columns:1fr}.arow{grid-template-columns:1fr}.aact{justify-content:flex-start}.chartwrap{height:280px;padding:12px 8px 4px}.verdict{font-size:19px}.toolbar-r{margin-left:0;width:100%}.toolbar-r>*{flex:1}.seg{width:100%}.seg button{flex:1;padding:6px 4px}.hstats>div{min-width:44%}}
+@media (hover:none){.wrow:hover,.prow:hover{background:transparent}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:1ms!important}.btn:active,.toast,.menu,dialog[open],.enter .stag{transform:none!important}}
+
+/* Depth: sidebar < page < panels < controls. Tone steps and borders only. */
+.rail{background:var(--rail)}.bar{background:var(--surface);border-bottom:1px solid var(--border)}.input{background:var(--ground)}
+.nav:hover{background:#1b2539}.nav.on{background:#242e46}.btn-ghost:hover{background:#2a3650}.menu button:hover,.menu button:focus-visible{background:#2c3852}
+.kpis,.tri,.histbar{background:var(--surface);border:1px solid var(--border);border-radius:10px}
+.kpis>div,.tri>div,.hstats>div{padding:16px 22px}.kpis>div:first-child,.tri>div:first-child,.hstats>div:first-child{padding-left:22px}
+.histbar{padding-right:20px;align-items:center}.histact{padding-bottom:0}
+.duo>div,.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:22px}.panel.flush{padding:0;overflow:hidden}
+.phead{background:var(--raised);padding:12px 20px;border-bottom:1px solid var(--border)}.prow{padding:16px 20px}.prow:last-child{border-bottom:0}
+.agrp,.day{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px 6px;margin-top:20px}
+.simgrid>div:last-child,.dock{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:22px}.dock{margin-top:24px}
+.seg{background:var(--surface);border:1px solid var(--border)}.seg button.on{background:#2c3852}
+.scale .tr{background:#323e59}.scale .rg{background:#555}.scale .sug,.scale .you{border-color:var(--surface)}.dv{background:#2c3852}.dv::after{background:#4b5875}
+@media (hover:hover){.prow:hover,.wrow:hover{background:#1f293f}}
+@media (max-width:1023px){.rail{background:var(--rail)}.bar{background:var(--surface)}.kpis>div:nth-child(3){padding-left:22px}.tri>div,.tri>div:first-child{padding:14px 12px}.hstats>div{min-width:44%}}
+
+/* Colour: blue marks actions, your current location and pricing data. Green/amber/red stay for status only. */
+.btn-primary{background:var(--accent-strong);color:#fff}.btn-primary:hover{background:#4a84ee}
+.nav.on{background:rgba(90,162,255,.16);color:#d6e6ff}.nav:hover{background:rgba(90,162,255,.08)}
+.seg button.on{background:rgba(90,162,255,.2);color:#d6e6ff}
+.console-head,.phead{background:var(--raised)}
+.kv.acc,#simPriceOut{color:var(--accent)}.kv.warn{color:#fbbf24}
+.scale .rg{background:#34496e}.scale .tr{background:#2c3c5c}.dv i.up{background:var(--accent)}.dv i.dn{background:#6b80a8}
+.menu button:hover,.menu button:focus-visible{background:#2c3c5c}.btn-ghost:hover{background:#2b3b5a}
+@media (hover:hover){.prow:hover,.wrow:hover{background:#1d2b45}}
+
+/* Polish: one loud button per screen; row actions stay quiet */
+.pact .btn-primary{background:transparent;color:var(--accent);border:1px solid rgba(90,162,255,.45)}.pact .btn-primary:hover{background:rgba(90,162,255,.14)}
+.nw{white-space:nowrap}
+.tlegend{display:flex;flex-wrap:wrap;gap:6px 20px;padding:14px 20px 0;font-size:12px;color:var(--muted)}.tlegend:empty{display:none}
+.tlegend button{display:inline-flex;align-items:center;gap:8px;padding:2px 0;transition:opacity 150ms ease,color 150ms ease}.tlegend button:hover{color:var(--text)}.tlegend button.off{opacity:.4}
+.tlegend i{display:inline-block;width:18px;flex:none}
+html{scrollbar-width:thin;scrollbar-color:#3b4d72 transparent}
+</style>
+</head>
+<body class="text-slate-100 font-sans antialiased">
+<div class="shell">
+<aside class="rail">
+  <div class="brand">
+    <svg class="h-8 w-8 shrink-0" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#121928" stroke="#222c43"/><path d="M9 21h14" stroke="#43506d" stroke-width="2.5" stroke-linecap="round"/><path d="M9 15h8" stroke="#f2f2f2" stroke-width="2.5" stroke-linecap="round"/><circle cx="23" cy="15" r="2.6" fill="#5aa2ff"/></svg>
+    <div class="min-w-0"><b class="trunc">{{ app_name }}</b><span>Dynamic pricing</span></div>
+    <button id="menuBtn" class="btn btn-ghost btn-sm ml-auto lg:hidden" aria-expanded="false" aria-controls="sideBody">Menu</button>
+  </div>
+  <div id="sideBody">
+    <nav aria-label="Views">
+      <p class="grp">Monitor</p>
+      <button class="nav on" data-view="overview">Overview</button>
+      <button class="nav" data-view="catalog">Product catalog</button>
+      <button class="nav" data-view="alerts">Alerts<span id="alertBadge" class="badge hidden">0</span></button>
+      <p class="grp">Plan</p>
+      <button class="nav" data-view="sim">What-if simulator</button>
+      <button class="nav" data-view="history">Price history</button>
+    </nav>
+    <div class="rail-foot">
+      <button id="btnAdd" class="btn btn-primary">+ Add product</button>
+      <button id="btnApplyAll" class="btn btn-ghost">Apply all suggestions</button>
+      <p id="stamp" class="stamp">Connecting…</p>
+    </div>
+  </div>
+</aside>
+
+<div class="stage">
+<header class="bar">
+  <div class="min-w-0"><h1 id="title">Overview</h1><p id="subtitle">Where your prices stand against the market today.</p></div>
+  <div class="marginctl"><label for="margin">Target margin</label><input id="margin" type="range" min="0" max="60" step="1" value="20"><output id="marginOut" class="tnum">20%</output></div>
+</header>
+<main>
+  <div id="err" class="hidden errbar" role="alert"></div>
+
+  <section id="view-overview">
+    <p id="verdict" class="verdict">Reading the market…</p>
+    <div class="kpis">
+      <div><p class="kl">Total products</p><p id="k1" class="kv tnum">–</p><p id="k1s" class="kn">&nbsp;</p></div>
+      <div><p class="kl">Market average discount</p><p id="k2" class="kv tnum">–</p><p id="k2s" class="kn">&nbsp;</p></div>
+      <div><p class="kl">Items needing review</p><p id="k3" class="kv tnum">–</p><p class="kn">Off-market or under target margin</p></div>
+      <div><p class="kl">Target margin rule</p><p id="k4" class="kv tnum acc">–</p><p id="k4s" class="kn">&nbsp;</p></div>
+    </div>
+    <div class="console">
+      <div class="console-head">
+        <div class="min-w-0 flex-1"><label for="pick" class="fld-l">Product in the price console</label><select id="pick" aria-label="Product for chart" class="input pick"></select></div>
+        <p id="trendNote" class="msub">&nbsp;</p>
+      </div>
+      <div class="console-body"><dl id="statrail" class="statrail"></dl><div class="min-w-0"><div id="trendLegend" class="tlegend"></div><div class="chartwrap"><canvas id="cTrend"></canvas></div></div></div>
+      <p id="forecastNote" class="fnote"></p>
+    </div>
+    <div class="duo">
+      <div><h2 class="sec">Needs attention</h2><p class="secd">Largest gaps to the market first. Select one to load it into the console.</p><ol id="worklist"></ol></div>
+      <div>
+        <h2 class="sec">Where you stand</h2><p class="secd">Within ±5% of the market average is competitive.</p>
+        <div class="stackbar"><canvas id="cStatus"></canvas></div><div id="statusLegend" class="text-sm"></div>
+        <h2 class="sec" style="margin-top:32px">What the data says</h2><ul id="insights" class="mt-3 space-y-2 text-sm text-slate-300"></ul>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:32px"><h2 class="sec">Your price vs. market average</h2><p class="secd">Right of zero means you charge more than competitors.</p><div id="gapBox" class="relative"><canvas id="cGap"></canvas></div></div>
+  </section>
+
+  <section id="view-catalog" class="hidden">
+    <div class="toolbar">
+      <div id="seg" class="seg" role="group" aria-label="Filter by status">
+        <button data-f="all" class="on">All<i>0</i></button><button data-f="Overpriced">Overpriced<i>0</i></button><button data-f="Undercut">Undercut<i>0</i></button><button data-f="Competitive">Competitive<i>0</i></button><button data-f="No Data">No data<i>0</i></button>
+      </div>
+      <select id="flt" class="sr-only" tabindex="-1" aria-hidden="true"><option value="all">All statuses</option><option>Overpriced</option><option>Undercut</option><option>Competitive</option><option>No Data</option></select>
+      <input id="q" type="search" placeholder="Search product, brand or category" aria-label="Search" class="input" style="max-width:300px">
+      <span id="count" class="msub"></span>
+      <div class="toolbar-r"><a id="expProducts" href="/api/export/products.csv" download class="btn btn-ghost">Export CSV</a><button id="btnAdd2" class="btn btn-primary">+ Add product</button></div>
+    </div>
+    <p class="keyline"><span><i class="k k-rg"></i>Competitor price range</span><span><i class="k k-you"></i>Your price</span><span><i class="k k-sug"></i>Suggested price</span><span><i class="k k-fl"></i>Margin floor</span></p>
+    <div class="panel flush"><div class="phead"><span>Product</span><span>Market position</span><span>Your price</span><span>Suggested</span><span></span></div>
+    <div id="rows"><div class="skel" style="height:64px;margin:10px 0"></div><div class="skel" style="height:64px;margin:10px 0"></div><div class="skel" style="height:64px;margin:10px 0"></div><div class="skel" style="height:64px;margin:10px 0"></div><div class="skel" style="height:64px;margin:10px 0"></div></div></div>
+  </section>
+
+  <section id="view-alerts" class="hidden"><div id="alertChips" class="tri"></div><div id="alertList"></div></section>
+
+  <section id="view-sim" class="hidden">
+    <div class="simtop"><label class="fld" style="max-width:380px"><span class="msub">Product</span><select id="simPick" class="input pick"></select></label></div>
+    <div class="simgrid">
+      <div class="console"><div id="simLegend" class="tlegend"></div><div class="chartwrap"><canvas id="cSim"></canvas></div></div>
+      <div>
+        <p id="simNote" class="callout">&nbsp;</p>
+        <div class="cmphead"><span>Per day</span><span>Today</span><span>Scenario</span><span>Change</span></div>
+        <div id="simRev" class="cmprow"></div><div id="simProfit" class="cmprow"></div><div id="simQty" class="cmprow"></div>
+      </div>
+    </div>
+    <div class="dock">
+      <label class="fld"><span class="msub flexb">New price<output id="simPriceOut" class="big tnum"></output></span><input id="simPrice" type="range"></label>
+      <label class="fld"><span class="msub flexb">Price elasticity<output id="simElOut" class="big tnum"></output></span><input id="simEl" type="range" min="-4" max="-0.2" step="0.1" value="-1.5"></label>
+      <label class="fld"><span class="msub">Units sold per day today</span><input id="simUnits" type="number" min="1" max="1000000" value="50" class="input"></label>
+      <div class="fld"><label class="fld"><span class="msub">Reason for change (optional)</span><input id="simReason" type="text" maxlength="60" list="reasons" placeholder="Simulator" class="input"></label><button id="simApply" class="btn btn-primary">Apply this price</button></div>
+    </div>
+    <p class="msub" style="margin-top:14px">Elasticity −1.5 means a 10% price rise cuts sales by roughly 15%. Closer to 0 means customers care less about price. Both numbers are your assumptions, not learned from sales data.</p>
+  </section>
+
+  <section id="view-history" class="hidden">
+    <div class="histbar"><div id="histStats" class="hstats"></div><div class="histact"><span id="histCount" class="msub"></span><a id="expHistory" href="/api/export/price-history.csv" download class="btn btn-ghost">Export CSV</a></div></div>
+    <div id="histRows"></div>
+  </section>
+</main>
+</div>
+</div>
+<datalist id="reasons"><option value="Competitor price drop"><option value="Competitor price rise"><option value="Seasonal promotion"><option value="Clearance sale"><option value="Supplier cost change"><option value="Margin correction"><option value="Brand repositioning"></datalist>
+<datalist id="vendors"><option value="MegaMart"><option value="PriceHub"><option value="ShopZone"><option value="BuyRight"></datalist>
+<dialog id="dlg"></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+const $ = (id) => document.getElementById(id);
+const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const COLOR = { Overpriced: '#fb7185', Undercut: '#fbbf24', Competitive: '#34d399', 'No Data': '#64748b' };
+const BADGE = { Overpriced: 'bg-rose-500/15 text-rose-300 ring-rose-400/30', Undercut: 'bg-amber-500/15 text-amber-300 ring-amber-400/30', Competitive: 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30', 'No Data': 'bg-slate-500/15 text-slate-300 ring-slate-400/30' };
+const ACCENT = '#5aa2ff';
+const LINES = ['#e8eef9', '#b9c7e0', '#8fa3c9', '#6b80a8'];
+const S = { products: [], kpis: null, sel: null, payload: null, charts: {}, seq: 0, timer: null };
+Chart.defaults.color = '#9db0cf'; Chart.defaults.font.family = 'Geist, system-ui, sans-serif'; Chart.defaults.borderColor = '#2c3c5c'; Chart.defaults.animation = { duration: 180, easing: 'easeOutQuart' };
+
+function toast(msg, bad) {
+  const t = $('toast'); t.textContent = msg; t.className = 'toast' + (bad ? ' bad' : '');
+  void t.offsetWidth; t.classList.add('in');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('in'), 3200);
+}
+function banner(msg) { $('err').innerHTML = msg ? `<span>${esc(msg)}</span><button id="retry" class="btn btn-ghost btn-sm shrink-0">Retry</button>` : ''; $('err').classList.toggle('hidden', !msg); }
+async function api(url, method = 'GET', body) {
+  const res = await fetch(url, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+  if (!res.ok) {
+    let d = res.statusText;
+    try { const j = await res.json(); d = Array.isArray(j.detail) ? j.detail.map((x) => `${x.loc.slice(-1)[0]}: ${x.msg}`).join('; ') : j.detail; } catch (_) {}
+    throw new Error(d);
+  }
+  return res.json();
+}
+function chart(id, cfg) { if (S.charts[id]) S.charts[id].destroy(); S.charts[id] = new Chart($(id), cfg); }
+
+/* ---------- views ---------- */
+const TITLES = {
+  overview: ['Overview', 'Where your prices stand against the market today.'],
+  catalog: ['Product catalog', 'Compare each price with the market, then reprice, edit or remove.'],
+  alerts: ['Alerts', 'Triage what needs a decision, most urgent first.'],
+  sim: ['What-if simulator', 'Try a price and see the estimated effect on sales and profit.'],
+  history: ['Price history', 'Every price change you have made, newest first.']
+};
+function showView(v) {
+  S.view = v;
+  $('sideBody').classList.remove('open'); $('menuBtn').textContent = 'Menu'; $('menuBtn').setAttribute('aria-expanded', 'false');
+  document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('on', b.dataset.view === v));
+  Object.keys(TITLES).forEach((k) => $('view-' + k).classList.toggle('hidden', k !== v));
+  $('title').textContent = TITLES[v][0]; $('subtitle').textContent = TITLES[v][1];
+  const sec = $('view-' + v); sec.classList.add('enter'); setTimeout(() => sec.classList.remove('enter'), 600);
+  if (v === 'overview') Object.values(S.charts).forEach((c) => c.resize());
+  if (v === 'history') loadHistory();
+  if (v === 'sim') fillSim();
+}
+
+/* ---------- rendering ---------- */
+function renderKpis() {
+  const k = S.kpis; if (!k) return;
+  $('k1').textContent = k.total_products;
+  $('k1s').textContent = `${k.competitive} competitive · ${k.overpriced} over · ${k.undercut} under`;
+  const d = k.avg_market_discount_pct;
+  $('k2').textContent = `${d > 0 ? '+' : ''}${d.toFixed(1)}%`;
+  $('k2s').textContent = Math.abs(d) < 0.05 ? 'In line with the market' : d > 0 ? 'Below the market on average' : 'Above the market on average';
+  $('k3').textContent = k.items_needing_review; $('k3').classList.toggle('warn', k.items_needing_review > 0);
+  $('k4').textContent = `${k.target_margin_pct}%`;
+  $('k4s').textContent = `Margin floor = cost ÷ ${(1 - k.target_margin_pct / 100).toFixed(2)}`;
+  $('verdict').textContent = !k.total_products ? 'No products yet. Add one to start monitoring the market.'
+    : !k.items_needing_review ? `All ${k.total_products} products sit inside the market band and above your margin floor.`
+    : `${k.items_needing_review} of ${k.total_products} products need a pricing decision: ${k.overpriced} priced above the market, ${k.undercut} below it${k.items_needing_review - k.overpriced - k.undercut > 0 ? `, ${k.items_needing_review - k.overpriced - k.undercut} more under your margin floor` : ''}.`;
+}
+function renderInsights() {
+  const P = S.products.filter((p) => p.market_avg != null), out = [];
+  if (!P.length) { $('insights').innerHTML = '<li class="text-slate-400">No competitor data yet. Add products and log competitor prices to see insights.</li>'; return; }
+  const ov = P.filter((p) => p.status === 'Overpriced').sort((a, b) => b.diff_pct - a.diff_pct)[0];
+  const un = P.filter((p) => p.status === 'Undercut').sort((a, b) => a.diff_pct - b.diff_pct)[0];
+  const mb = P.filter((p) => p.margin_bound).length;
+  if (ov) out.push(['bg-rose-400', `<b>${esc(ov.title)}</b> is ${ov.diff_pct.toFixed(1)}% above market. Moving to ${money.format(ov.suggested_price)} realigns it.`]);
+  if (un) out.push(['bg-amber-300', `<b>${esc(un.title)}</b> is ${Math.abs(un.diff_pct).toFixed(1)}% below market. Raising to ${money.format(un.suggested_price)} earns ${money.format(un.price_change)} more per unit.`]);
+  if (mb) out.push(['bg-orange-400', `${mb} product${mb > 1 ? 's are' : ' is'} margin-bound: your target margin keeps ${mb > 1 ? 'them' : 'it'} above the competitive price.`]);
+  const avg = (k) => P.reduce((s, p) => s + p[k], 0) / P.length;
+  out.push(['bg-blue-400', `Applying every suggestion moves your average margin from ${avg('current_margin_pct').toFixed(1)}% to ${avg('suggested_margin_pct').toFixed(1)}%.`]);
+  $('insights').innerHTML = out.map(([c, t]) => `<li class="flex gap-3"><span class="mt-1.5 h-2 w-2 shrink-0 rounded-full ${c}"></span><span>${t}</span></li>`).join('');
+}
+const sc = (s) => ({ Overpriced: 'over', Undercut: 'under', Competitive: 'ok' })[s] || 'none';
+function renderWork() {
+  const rows = S.products.filter((p) => p.status === 'Overpriced' || p.status === 'Undercut' || p.below_target_margin)
+    .sort((a, b) => Math.abs(b.diff_pct ?? 0) - Math.abs(a.diff_pct ?? 0)).slice(0, 6);
+  $('worklist').innerHTML = rows.length ? rows.map((p, i) => `<li class="wrow stag" style="--i:${i}" data-wid="${esc(p.id)}" tabindex="0"><span class="dot ${sc(p.status)}"></span>
+    <span class="trunc"><b class="font-medium" title="${esc(p.title)}">${esc(p.title)}</b><span class="msub"> ${p.diff_pct == null ? '' : `${p.diff_pct > 0 ? '+' : ''}${p.diff_pct.toFixed(1)}% vs market`}${p.below_target_margin ? ' · below margin floor' : ''}</span></span>
+    <span class="tnum msub">${money.format(p.current_price)} → <b class="font-medium text-slate-100">${money.format(p.suggested_price)}</b></span></li>`).join('')
+    : '<li class="empty">Nothing to review. Every product is inside the market band.</li>';
+}
+function renderCharts() {
+  const k = S.kpis; if (!k) return;
+  const names = ['Competitive', 'Overpriced', 'Undercut', 'No Data'], vals = [k.competitive, k.overpriced, k.undercut, k.total_products - k.competitive - k.overpriced - k.undercut];
+  chart('cStatus', { type: 'bar', data: { labels: [''], datasets: names.map((n, i) => ({ label: n, data: [vals[i]], backgroundColor: COLOR[n], borderWidth: 0, borderRadius: 2, borderSkipped: false })) },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.parsed.x}` } } }, scales: { x: { stacked: true, display: false }, y: { stacked: true, display: false } }, datasets: { bar: { barPercentage: .8, categoryPercentage: .9 } } } });
+  $('statusLegend').innerHTML = names.map((n, i) => `<div class="flex items-center justify-between border-t border-white/5 py-2"><span class="flex items-center text-slate-300"><span class="dot ${sc(n)}"></span>${n}</span><span class="tnum">${vals[i]}</span></div>`).join('');
+  const G = S.products.filter((p) => p.diff_pct != null).sort((a, b) => b.diff_pct - a.diff_pct);
+  $('gapBox').style.height = Math.max(240, G.length * 30 + 50) + 'px';
+  chart('cGap', { type: 'bar', data: { labels: G.map((p) => p.title), datasets: [{ data: G.map((p) => p.diff_pct), backgroundColor: G.map((p) => COLOR[p.status]), borderRadius: 3 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${c.parsed.x > 0 ? '+' : ''}${c.parsed.x.toFixed(1)}% vs market` } } }, scales: { x: { ticks: { callback: (v) => v + '%' } }, y: { grid: { display: false } } } } });
+}
+function legend(el, ds) {
+  el.innerHTML = ds.map((d, i) => {
+    const c = d.borderColor || d.backgroundColor;
+    const sw = d.showLine === false ? `<i style="width:10px;height:10px;border-radius:50%;background:${c}"></i>`
+      : d.borderDash ? `<i style="height:0;border-top:2px ${d.borderDash[0] <= 3 ? 'dotted' : 'dashed'} ${c}"></i>`
+      : `<i style="height:${d.borderWidth > 2 ? 3 : 2}px;border-radius:2px;background:${c}"></i>`;
+    return `<button type="button" data-i="${i}" aria-pressed="true">${sw}${esc(d.label)}</button>`;
+  }).join('');
+}
+function drawTrend() {
+  const p = S.payload, rail = $('statrail'), prod = S.products.find((x) => x.id === S.sel), mrg = parseFloat($('margin').value) / 100;
+  const st = (l, v, s, c) => `<div class="st"><dt>${l}</dt><dd class="tnum ${c || ''}">${v}</dd><dd class="sub tnum">${s}</dd></div>`;
+  if (!p || !p.labels.length) {
+    if (S.charts.cTrend) { S.charts.cTrend.destroy(); delete S.charts.cTrend; }
+    $('trendLegend').innerHTML = '';
+    $('trendNote').textContent = prod ? 'No competitor history yet' : ''; $('forecastNote').textContent = prod ? 'Log a competitor price from the row menu in the catalog to start the history.' : '';
+    rail.innerHTML = st('Your price', prod ? money.format(prod.current_price) : '–', '&nbsp;', 'acc') + st('Market average', '–', 'No data') + st('Margin floor', prod ? money.format(prod.margin_floor) : '–', `at ${(mrg * 100).toFixed(0)}% target`) + st('7-day forecast', '–', 'Needs 3+ days of prices');
+    return;
+  }
+  const f = p.forecast, n = p.labels.length, nf = f ? f.labels.length : 0, total = n + nf, you = p.product.current_price, floor = p.product.base_cost / (1 - mrg);
+  const pad = (a) => a.concat(Array(nf).fill(null));
+  const ds = p.datasets.map((d, i) => ({ label: d.vendor, data: pad(d.data), borderColor: LINES[i % LINES.length], backgroundColor: LINES[i % LINES.length], borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4, tension: .3, spanGaps: true }));
+  ds.push({ label: 'Market average', data: pad(p.market_avg), borderColor: '#fafafa', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, tension: .3 });
+  if (f) ds.push({ label: 'Forecast', data: Array(n - 1).fill(null).concat([p.market_avg[n - 1]], f.market_avg), borderColor: ACCENT, borderDash: [3, 3], borderWidth: 2.5, pointRadius: 2, tension: 0 });
+  ds.push({ label: 'Your price', data: Array(total).fill(you), borderColor: ACCENT, borderWidth: 3, pointRadius: 0 });
+  ds.push({ label: 'Margin floor', data: Array(total).fill(+floor.toFixed(2)), borderColor: '#d9a441', borderDash: [2, 4], borderWidth: 2, pointRadius: 0 });
+  chart('cTrend', { type: 'line', data: { labels: p.labels.concat(f ? f.labels : []), datasets: ds }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${money.format(c.parsed.y)}` } } },
+    scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { ticks: { callback: (v) => money.format(v) } } } } });
+  legend($('trendLegend'), ds);
+  $('trendNote').textContent = `${p.datasets.length} competitors · ${n} days`;
+  const mk = p.market_avg[n - 1], diff = (you - mk) / mk * 100, last = p.datasets.map((d) => d.data[n - 1]).filter((v) => v != null), end = f ? f.market_avg[f.market_avg.length - 1] : null;
+  rail.innerHTML = st('Your price', money.format(you), `${diff > 0 ? '+' : ''}${diff.toFixed(1)}% vs market`, 'acc') + st('Market average', money.format(mk), last.length ? `${money.format(Math.min(...last))} to ${money.format(Math.max(...last))}` : '&nbsp;')
+    + st('Margin floor', money.format(floor), `at ${(mrg * 100).toFixed(0)}% target`) + st('7-day forecast', f ? money.format(end) : '–', f ? `${f.direction}, R² ${f.r2}` : 'Needs 3+ days of prices');
+  if (!f) { $('forecastNote').textContent = 'Not enough history to forecast yet (needs 3+ days).'; return; }
+  const tip = f.direction === 'falling' && you > end ? ' Your price is above the forecast, so consider lowering it.' : f.direction === 'rising' && you < end ? ' Your price is below the forecast, so you may be able to raise it.' : '';
+  $('forecastNote').textContent = `Forecast: the market average is ${f.direction} (${f.slope_per_day >= 0 ? '+' : '−'}${money.format(Math.abs(f.slope_per_day))}/day) and may reach ${money.format(end)} in ${nf} days.${tip}`;
+}
+function scale(p) {
+  if (p.market_min == null) return '<div class="msub">No competitor prices yet. Use “Log competitor price” in the row menu.</div>';
+  const vals = [p.market_min, p.market_max, p.current_price, p.suggested_price, p.margin_floor], lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo || 1) * 0.06, a = lo - pad, span = hi - lo + 2 * pad;
+  const at = (v) => ((v - a) / span * 100).toFixed(1);
+  return `<div class="scale" role="img" aria-label="Market ${money.format(p.market_min)} to ${money.format(p.market_max)}; you ${money.format(p.current_price)}; suggested ${money.format(p.suggested_price)}; margin floor ${money.format(p.margin_floor)}"><div class="tr"></div><div class="rg" style="left:${at(p.market_min)}%;width:${(at(p.market_max) - at(p.market_min)).toFixed(1)}%"></div><div class="fl" style="left:${at(p.margin_floor)}%"></div><div class="sug" style="left:${at(p.suggested_price)}%"></div><div class="you" style="left:${at(p.current_price)}%"></div></div>
+    <div class="sline tnum">Market ${money.format(p.market_min)} to ${money.format(p.market_max)} · average ${money.format(p.market_avg)} · floor ${money.format(p.margin_floor)}</div>`;
+}
+function renderTable() {
+  const q = $('q').value.trim().toLowerCase(), f = $('flt').value;
+  const cnt = (s) => s === 'all' ? S.products.length : S.products.filter((p) => p.status === s).length;
+  document.querySelectorAll('#seg [data-f]').forEach((b) => { b.classList.toggle('on', b.dataset.f === f); b.querySelector('i').textContent = cnt(b.dataset.f); });
+  const list = S.products.filter((p) => (f === 'all' || p.status === f) && (!q || `${p.title} ${p.brand} ${p.category}`.toLowerCase().includes(q)));
+  $('count').textContent = `${list.length} of ${S.products.length}`;
+  if (!S.products.length) { $('rows').innerHTML = '<div class="empty big"><p class="text-slate-300">No products yet.</p><p class="msub" style="margin:4px 0 16px">Add your first product, then log competitor prices to analyse it.</p><button class="btn btn-primary" data-empty-add>+ Add product</button></div>'; return; }
+  if (!list.length) { $('rows').innerHTML = '<div class="empty big">No products match this search or filter.</div>'; return; }
+  $('rows').innerHTML = list.map((p, i) => {
+    const d = p.price_change, canApply = p.status !== 'No Data' && Math.abs(d) >= 0.01;
+    const delta = canApply ? `${d > 0 ? '▲' : '▼'} ${money.format(Math.abs(d))}` : 'no change';
+    return `<div class="prow stag" style="--i:${Math.min(i, 8)}" data-id="${esc(p.id)}">
+      <div class="pid min-w-0"><div class="pname trunc" title="${esc(p.title)}">${esc(p.title)}</div><div class="psub"><span class="dot ${sc(p.status)}"></span><span class="trunc">${esc(p.status)} · ${esc(p.brand)}</span></div></div>
+      <div class="pscale">${scale(p)}</div>
+      <div class="pnum pp"><div class="fig tnum">${money.format(p.current_price)}</div><div class="psub tnum">cost ${money.format(p.base_cost)}</div></div>
+      <div class="pnum ps"><div class="fig tnum">${money.format(p.suggested_price)}</div><div class="psub tnum nw">${delta}</div><div class="psub tnum nw">${p.suggested_margin_pct.toFixed(0)}% margin</div>${p.margin_bound ? '<div class="psub nw" style="color:#d9a441" title="The margin floor is above the market price">At margin floor</div>' : ''}</div>
+      <div class="pact" data-id="${esc(p.id)}">${canApply ? '<button class="btn btn-primary btn-sm" data-act="apply">Apply</button>' : ''}<button class="btn btn-ghost btn-sm !px-2" data-act="menu" aria-haspopup="menu" aria-label="More actions for ${esc(p.title)}"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="3" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="13" cy="8" r="1.3"/></svg></button></div></div>`;
+  }).join('');
+}
+function renderPick() {
+  $('pick').innerHTML = S.products.map((p) => `<option value="${esc(p.id)}">${esc(p.title)}</option>`).join('');
+  if (S.sel) $('pick').value = S.sel;
+}
+const renderAll = () => { renderKpis(); renderInsights(); renderCharts(); renderWork(); renderPick(); renderTable(); $('stamp').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); };
+
+/* ---------- data loading ---------- */
+async function loadTrend() {
+  S.payload = S.sel ? await api(`/api/chart-data/${encodeURIComponent(S.sel)}`) : null;
+  drawTrend();
+}
+async function load(reloadTrend) {
+  const seq = ++S.seq;
+  try {
+    const d = await api(`/api/analytics?target_margin=${$('margin').value}`);
+    if (seq !== S.seq) return;
+    S.products = d.products; S.kpis = d.kpis;
+    if (!S.products.some((p) => p.id === S.sel)) { S.sel = S.products[0]?.id || null; reloadTrend = true; }
+    renderAll(); banner(''); refreshExtras();
+    if (reloadTrend) await loadTrend(); else drawTrend();
+  } catch (e) {
+    if (seq === S.seq) { banner(`Could not load data: ${e.message}`); $('rows').innerHTML = '<tr><td colspan="8" class="px-5 py-12 text-center text-slate-400">Data unavailable. Check your MongoDB connection.</td></tr>'; }
+  }
+}
+
+/* ---------- dialogs & CRUD ---------- */
+function openForm({ title, fields = [], values = {}, submit, danger, note, onSubmit }) {
+  const dlg = $('dlg');
+  const inputs = fields.map(([name, label, type, extra]) => `<label class="block text-sm"><span class="text-slate-400">${label}</span><input class="input mt-1" name="${name}" type="${type}" ${extra || ''} value="${esc(values[name] ?? '')}" ${(extra || '').includes('data-opt') ? '' : 'required'}></label>`).join('');
+  dlg.innerHTML = `<form class="p-6 space-y-4 w-[min(92vw,26rem)]"><h3 class="text-lg font-bold">${title}</h3>${note ? `<p class="text-sm text-slate-300">${note}</p>` : ''}${inputs}<p id="dlgErr" class="hidden text-sm text-rose-300"></p>
+    <div class="flex justify-end gap-2 pt-2"><button type="button" class="btn btn-ghost" data-close>Cancel</button><button class="btn ${danger ? 'btn-danger' : 'btn-primary'}">${submit}</button></div></form>`;
+  const form = dlg.querySelector('form');
+  form.querySelector('[data-close]').onclick = () => dlg.close();
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('button:not([data-close])'); btn.disabled = true;
+    try { await onSubmit(Object.fromEntries(new FormData(form))); dlg.close(); }
+    catch (err) { const m = $('dlgErr'); m.textContent = err.message; m.classList.remove('hidden'); btn.disabled = false; }
+  };
+  dlg.showModal();
+}
+const PRODUCT_FIELDS = [['title', 'Product name', 'text', 'minlength="2" maxlength="120"'], ['category', 'Category', 'text', 'maxlength="60"'], ['brand', 'Brand', 'text', 'maxlength="60"'],
+  ['base_cost', 'Base cost ($)', 'number', 'min="0.01" step="0.01"'], ['current_price', 'Current price ($)', 'number', 'min="0.01" step="0.01"']];
+const productBody = (v) => ({ title: v.title, category: v.category, brand: v.brand, base_cost: parseFloat(v.base_cost), current_price: parseFloat(v.current_price) });
+
+function addProduct() {
+  openForm({ title: 'Add product', fields: PRODUCT_FIELDS, submit: 'Add product', onSubmit: async (v) => {
+    const r = await api('/api/products', 'POST', productBody(v)); S.sel = r.id; toast('Product added. Log competitor prices to analyse it.'); await load(true);
+  } });
+}
+const REASON_FIELD = ['reason', 'Reason for price change', 'text', 'list="reasons" maxlength="60" placeholder="e.g. Competitor price drop"'];
+function editProduct(p) {
+  openForm({ title: 'Edit product', fields: [...PRODUCT_FIELDS, [REASON_FIELD[0], REASON_FIELD[1] + ' (optional)', 'text', REASON_FIELD[3] + ' data-opt']], values: p, submit: 'Save changes', onSubmit: async (v) => {
+    const reason = (v.reason || '').trim() || 'Manual edit';
+    await api(`/api/products/${p.id}?reason=${encodeURIComponent(reason)}`, 'PUT', productBody(v)); toast('Product updated.'); await load(p.id === S.sel);
+  } });
+}
+function logPrice(p) {
+  openForm({ title: 'Log competitor price', note: `Today’s price for <b>${esc(p.title)}</b>. Logging the same vendor again today overwrites it.`,
+    fields: [['vendor', 'Vendor', 'text', 'list="vendors" maxlength="60"'], ['price', 'Their price ($)', 'number', 'min="0.01" step="0.01"']], submit: 'Log price',
+    onSubmit: async (v) => { await api(`/api/products/${p.id}/competitor-prices`, 'POST', { vendor: v.vendor, price: parseFloat(v.price) }); toast('Competitor price logged.'); await load(p.id === S.sel); } });
+}
+function deleteProduct(p) {
+  openForm({ title: 'Delete product?', note: `This permanently removes <b>${esc(p.title)}</b> and all of its competitor price history.`, submit: 'Delete', danger: true,
+    onSubmit: async () => { await api(`/api/products/${p.id}`, 'DELETE'); toast('Product deleted.'); await load(false); } });
+}
+function applyOne(p) {
+  openForm({ title: 'Apply suggested price', note: `Change <b>${esc(p.title)}</b> from ${money.format(p.current_price)} to <b>${money.format(p.suggested_price)}</b>. The reason is saved in the price history.`,
+    fields: [REASON_FIELD], values: { reason: 'Applied suggestion' }, submit: 'Apply price', onSubmit: async (v) => {
+      await api(`/api/products/${p.id}?reason=${encodeURIComponent(v.reason.trim() || 'Applied suggestion')}`, 'PUT', { ...productBody(p), current_price: p.suggested_price });
+      toast(`${p.title} repriced to ${money.format(p.suggested_price)}.`); await load(p.id === S.sel);
+    } });
+}
+function applyAll() {
+  const n = S.products.filter((p) => p.status !== 'No Data' && Math.abs(p.price_change) >= 0.01).length;
+  if (!n) { toast('Nothing to change. Every price already matches its suggestion.'); return; }
+  openForm({ title: 'Apply all suggestions?', note: `This updates the current price of ${n} product${n > 1 ? 's' : ''} in the database.`, fields: [REASON_FIELD], values: { reason: 'Applied suggestion (bulk)' }, submit: `Reprice ${n}`,
+    onSubmit: async (v) => { const r = await api(`/api/apply-suggestions?target_margin=${$('margin').value}&reason=${encodeURIComponent(v.reason.trim() || 'Applied suggestion (bulk)')}`, 'POST'); toast(`${r.updated} prices updated.`); await load(true); } });
+}
+
+/* ---------- events ---------- */
+document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => showView(b.dataset.view)));
+$('margin').addEventListener('input', (e) => { $('marginOut').textContent = e.target.value + '%'; clearTimeout(S.timer); S.timer = setTimeout(() => load(false), 250); });
+$('pick').addEventListener('change', async (e) => { S.sel = e.target.value; try { await loadTrend(); } catch (err) { banner(err.message); } });
+$('q').addEventListener('input', renderTable); $('flt').addEventListener('change', renderTable);
+$('btnAdd').addEventListener('click', addProduct); $('btnAdd2').addEventListener('click', addProduct); $('btnApplyAll').addEventListener('click', applyAll);
+const ACTIONS = { apply: applyOne, edit: editProduct, log: logPrice, del: deleteProduct,
+  chart: async (x) => { S.sel = x.id; renderPick(); showView('overview'); try { await loadTrend(); } catch (err) { banner(err.message); } } };
+let menuEl = null;
+function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+function openMenu(btn, p) {
+  const same = menuEl && menuEl.dataset.id === p.id; closeMenu(); if (same) return;
+  const m = document.createElement('div'); m.className = 'menu'; m.setAttribute('role', 'menu'); m.dataset.id = p.id;
+  m.innerHTML = [['chart', 'View price history'], ['log', 'Log competitor price'], ['edit', 'Edit product'], ['del', 'Delete product']].map(([a, l]) => `<button role="menuitem" data-pact="${a}" class="${a === 'del' ? 'danger' : ''}">${l}</button>`).join('');
+  document.body.appendChild(m);
+  const r = btn.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight, below = r.bottom + 4 + h < window.innerHeight;
+  m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)) + 'px'; m.style.top = (below ? r.bottom + 4 : r.top - h - 4) + 'px';
+  m.style.setProperty('--ox', below ? 'top right' : 'bottom right'); menuEl = m; m.querySelector('button').focus();
+}
+$('rows').addEventListener('click', (e) => {
+  if (e.target.closest('[data-empty-add]')) return addProduct();
+  const btn = e.target.closest('[data-act]'); if (!btn) return;
+  const p = S.products.find((x) => x.id === btn.closest('[data-id]').dataset.id); if (!p) return;
+  if (btn.dataset.act === 'menu') openMenu(btn, p); else ACTIONS[btn.dataset.act](p);
+});
+document.addEventListener('click', (e) => {
+  const it = e.target.closest('[data-pact]');
+  if (it && menuEl) { const p = S.products.find((x) => x.id === menuEl.dataset.id); closeMenu(); if (p) ACTIONS[it.dataset.pact](p); return; }
+  if (menuEl && !e.target.closest('.menu') && !e.target.closest('[data-act="menu"]')) closeMenu();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+window.addEventListener('scroll', closeMenu, true); window.addEventListener('resize', closeMenu);
+$('menuBtn').addEventListener('click', () => { const o = $('sideBody').classList.toggle('open'); $('menuBtn').setAttribute('aria-expanded', o); $('menuBtn').textContent = o ? 'Close' : 'Menu'; });
+$('err').addEventListener('click', (e) => { if (e.target.id === 'retry') load(true); });
+/* ---------- alerts, history, simulator ---------- */
+const SEV = { critical: ['#fb7185', 'Critical'], warning: ['#fbbf24', 'Warning'], info: ['#66718a', 'Information'] };
+function renderAlerts() {
+  const A = S.alerts || [], urgent = A.filter((a) => a.severity !== 'info').length;
+  $('alertBadge').textContent = urgent; $('alertBadge').classList.toggle('hidden', !urgent);
+  $('alertChips').innerHTML = Object.keys(SEV).map((s) => `<div><p class="kl"><span class="dot" style="background:${SEV[s][0]}"></span>${SEV[s][1]}</p><p class="kv tnum">${A.filter((a) => a.severity === s).length}</p></div>`).join('');
+  if (!A.length) { $('alertList').innerHTML = '<div class="empty big">All clear. Nothing needs your attention at this margin.</div>'; return; }
+  $('alertList').innerHTML = Object.keys(SEV).map((s) => {
+    const g = A.filter((a) => a.severity === s); if (!g.length) return '';
+    return `<div class="agrp"><h3>${SEV[s][1]} · ${g.length}</h3>${g.map((a, i) => `<div class="arow stag" style="--i:${Math.min(i, 8)};--sev:${SEV[s][0]}"><div class="min-w-0"><div class="atop"><span class="atype">${esc(a.type)}</span><span class="aprod trunc" title="${esc(a.product)}">${esc(a.product)}</span></div><p class="amsg">${esc(a.message)}</p></div>
+      <div class="aact"><button class="btn btn-ghost btn-sm" data-pid="${esc(a.product_id)}">View chart</button><button class="btn btn-ghost btn-sm" data-open="${esc(a.product)}">Open in catalog</button></div></div>`).join('')}</div>`;
+  }).join('');
+}
+async function refreshExtras() {
+  $('expProducts').href = `/api/export/products.csv?target_margin=${$('margin').value}`;
+  try { S.alerts = (await api(`/api/alerts?target_margin=${$('margin').value}`)).alerts; renderAlerts(); } catch (_) {}
+  if (S.view === 'history') loadHistory();
+}
+async function loadHistory() {
+  try {
+    const R = (await api('/api/price-history?limit=200')).rows, W = R.filter((r) => r.change_pct != null);
+    $('histCount').textContent = `${R.length} recorded change${R.length === 1 ? '' : 's'}`;
+    const big = W.slice().sort((a, b) => Math.abs(b.change_pct) - Math.abs(a.change_pct))[0], tally = {};
+    R.forEach((r) => { tally[r.title] = (tally[r.title] || 0) + 1; });
+    const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
+    $('histStats').innerHTML = R.length ? [['Price increases', W.filter((r) => r.change_pct > 0).length, ''], ['Price decreases', W.filter((r) => r.change_pct < 0).length, ''],
+      ['Largest move', big ? `${big.change_pct > 0 ? '+' : ''}${big.change_pct.toFixed(1)}%` : '–', big ? esc(big.title) : ''], ['Most changed', top ? `${top[1]}×` : '–', top ? esc(top[0]) : '']]
+      .map(([l, v, s]) => `<div><p class="kl">${l}</p><p class="kv tnum">${v}</p><p class="kn trunc">${s || '&nbsp;'}</p></div>`).join('') : '';
+    if (!R.length) { $('histRows').innerHTML = '<div class="empty big">No price changes recorded yet. Edit a product price or apply a suggestion to start the trail.</div>'; return; }
+    const today = new Date().toDateString(), yest = new Date(Date.now() - 864e5).toDateString(), groups = [];
+    R.forEach((r) => { const dt = new Date(r.at), key = dt.toDateString(); let g = groups[groups.length - 1]; if (!g || g.key !== key) { g = { key, label: key === today ? 'Today' : key === yest ? 'Yesterday' : dt.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }), rows: [] }; groups.push(g); } g.rows.push(r); });
+    $('histRows').innerHTML = groups.map((g) => `<div class="day"><h3>${esc(g.label)}</h3>${g.rows.map((r, i) => {
+      const c = r.change_pct, w = c == null ? 0 : Math.min(Math.abs(c) / 20 * 50, 50);
+      return `<div class="hrow stag" style="--i:${Math.min(i, 8)}"><span class="msub tnum">${esc(new Date(r.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</span><span class="trunc font-medium" title="${esc(r.title)}">${esc(r.title)}</span>
+        <span class="hmove tnum">${r.old_price == null ? '–' : money.format(r.old_price)} → <b>${money.format(r.new_price)}</b></span>
+        <span class="hdv"><span class="dv">${c == null ? '' : `<i class="${c >= 0 ? 'up' : 'dn'}" style="width:${w}%"></i>`}</span><span class="tnum">${c == null ? 'new' : `${c > 0 ? '+' : ''}${c.toFixed(1)}%`}</span></span>
+        <span class="hreason trunc msub" title="${esc(r.reason)}">${esc(r.reason)}</span></div>`;
+    }).join('')}</div>`).join('');
+  } catch (e) { banner(`Could not load history: ${e.message}`); }
+}
+const simProduct = () => S.products.find((p) => p.id === $('simPick').value);
+function fillSim() {
+  const keep = $('simPick').value;
+  $('simPick').innerHTML = S.products.map((p) => `<option value="${esc(p.id)}">${esc(p.title)}</option>`).join('');
+  $('simPick').value = S.products.some((p) => p.id === keep) ? keep : (S.sel || S.products[0]?.id || '');
+  const p = simProduct(); if (!p) return;
+  const s = $('simPrice'); s.min = (p.current_price * 0.6).toFixed(2); s.max = (p.current_price * 1.6).toFixed(2); s.step = '0.01'; s.value = p.current_price;
+  runSim();
+}
+async function runSim() {
+  const p = simProduct(); if (!p) return;
+  const price = parseFloat($('simPrice').value), units = parseFloat($('simUnits').value) || 50, el = parseFloat($('simEl').value), seq = (S.simSeq = (S.simSeq || 0) + 1);
+  $('simPriceOut').textContent = money.format(price); $('simElOut').textContent = el.toFixed(1).replace('-', '−');
+  try {
+    const r = await api(`/api/simulate/${p.id}?new_price=${price}&units=${units}&elasticity=${el}`);
+    if (seq !== S.simSeq) return;
+    const card = (label, a, b, fmt) => { const d = a - b; return `<span>${label}</span><span class="tnum">${fmt(b)}</span><span class="tnum scen">${fmt(a)}</span><span class="tnum ${Math.abs(d) < 0.005 ? 'msub' : ''}">${Math.abs(d) < 0.005 ? '–' : `${d > 0 ? '+' : '−'}${fmt(Math.abs(d))}`}</span>`; };
+    $('simRev').innerHTML = card('Revenue per day', r.scenario.revenue, r.baseline.revenue, (v) => money.format(v));
+    $('simProfit').innerHTML = card('Profit per day', r.scenario.profit, r.baseline.profit, (v) => money.format(v));
+    $('simQty').innerHTML = card('Units per day', r.scenario.units, r.baseline.units, (v) => v.toFixed(1));
+    const o = r.optimal, gain = o.profit - r.baseline.profit, pts = (l, pt, c, sz, st) => ({ label: l, data: [{ x: pt.price, y: pt.profit }], backgroundColor: c, borderColor: c, pointRadius: sz, pointStyle: st || 'circle', showLine: false });
+    chart('cSim', { type: 'line', data: { datasets: [
+      { label: 'Daily profit', data: r.curve.map((c) => ({ x: c.price, y: c.profit })), borderColor: ACCENT, borderWidth: 2, pointRadius: 0, tension: .3 },
+      pts('Today', r.baseline, '#94a3b8', 6), pts('Your scenario', r.scenario, '#f2f2f2', 7), pts('Best price', o, '#34d399', 8, 'triangle')] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${money.format(c.parsed.y)} at ${money.format(c.parsed.x)}` } } },
+        scales: { x: { type: 'linear', title: { display: true, text: 'Price' }, ticks: { callback: (v) => money.format(v) } }, y: { title: { display: true, text: 'Profit per day' }, ticks: { callback: (v) => money.format(v) } } } } });
+    legend($('simLegend'), S.charts.cSim.data.datasets);
+    const edge = o.price <= r.curve[0].price || o.price >= r.curve[r.curve.length - 1].price;
+    $('simNote').textContent = `Best price in this range: ${money.format(o.price)}, ${money.format(Math.abs(gain))} ${gain >= 0 ? 'more' : 'less'} profit per day than today.${edge ? ' It sits at the edge of the tested range, so treat it with care.' : ''}`;
+  } catch (e) { banner(e.message); }
+}
+$('simPick').addEventListener('change', fillSim);
+['simPrice', 'simUnits', 'simEl'].forEach((id) => $(id).addEventListener('input', () => { clearTimeout(S.simT); S.simT = setTimeout(runSim, 150); }));
+$('simApply').addEventListener('click', async () => {
+  const p = simProduct(); if (!p) return;
+  try { await api(`/api/products/${p.id}?reason=${encodeURIComponent($('simReason').value.trim() || 'Simulator')}`, 'PUT', { ...productBody(p), current_price: Math.round(parseFloat($('simPrice').value) * 100) / 100 }); toast('Price applied and recorded in history.'); await load(p.id === S.sel); fillSim(); }
+  catch (e) { toast(e.message, true); }
+});
+$('alertList').addEventListener('click', async (e) => {
+  const o = e.target.closest('[data-open]');
+  if (o) { $('q').value = o.dataset.open; $('flt').value = 'all'; renderTable(); showView('catalog'); return; }
+  const b = e.target.closest('[data-pid]'); if (!b) return;
+  S.sel = b.dataset.pid; renderPick(); showView('overview'); try { await loadTrend(); } catch (err) { banner(err.message); }
+});
+$('seg').addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (b) { $('flt').value = b.dataset.f; renderTable(); } });
+const pickWork = async (el) => { const li = el.closest('[data-wid]'); if (!li) return; S.sel = li.dataset.wid; renderPick(); window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); try { await loadTrend(); } catch (err) { banner(err.message); } };
+$('worklist').addEventListener('click', (e) => pickWork(e.target));
+$('worklist').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickWork(e.target); } });
+
+['trendLegend', 'simLegend'].forEach((id) => $(id).addEventListener('click', (e) => {
+  const b = e.target.closest('[data-i]'), c = S.charts[id === 'trendLegend' ? 'cTrend' : 'cSim']; if (!b || !c) return;
+  const i = +b.dataset.i, on = !c.isDatasetVisible(i); c.setDatasetVisibility(i, on); b.classList.toggle('off', !on); b.setAttribute('aria-pressed', String(on)); c.update();
+}));
+
+load(true);
+})();
+</script>
+</body>
+</html>

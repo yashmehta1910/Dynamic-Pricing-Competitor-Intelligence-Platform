@@ -1,0 +1,8 @@
+
+# Ignore virtual environments
+venv/
+.venv/
+env/
+
+# Ignore a specific HTML file
+index_backup.html
